@@ -7,10 +7,10 @@ differences.
 
 The document is broken up into several parts:
 
-- The [grammar](grammar.md) describes the syntax of a Featherweight
+- The [grammar](blob/master/grammar.md) describes the syntax of a Featherweight
   Rust program.
-- The [type system](typesys.md) document gives the type rules for
-  checking whether a Rust program is legal.
+- The [type system](blob/master/typesys.md) document gives the type
+  rules for checking whether a Rust program is legal.
 
 Still to come:
 
