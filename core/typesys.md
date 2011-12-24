@@ -2,8 +2,6 @@
 
 An environment `Env` is a function `x->T` mapping variable names to types.
 
-A capability set `C` is a set of variable names.
-
 A type substitution `%: tv->T` maps from type variables to types.
 
 ## Subtyping ##

@@ -23,7 +23,8 @@
       | g<Ts>
       | tv
       | ()
-    D = +                                    (mode)
+    D = ++                                   (mode)
+      | +
       | -
       | &
     M = mut                                  (mutability)
