@@ -10,7 +10,6 @@
       | *E
       | let x: T = E in E
       | { Ms fs: Es }
-      | [ M Es ]
       | alt E { As }
       | { Es; E }
       | fn(Ds xs: Ts) -> T { E }
@@ -19,7 +18,6 @@
     P = x                                    (pattern)
       | i(Ps)
     T = S N T                                (type)
-      | [N T]
       | { Ns fs: Ts }
       | fn(Ds Ts) -> T
       | g<Ts>
