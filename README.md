@@ -25,9 +25,10 @@ Excluded are:
 
 The document is broken up into several parts:
 
-- The [grammar](rust-formal/blob/master/core/grammar.md) describes the
+- The [typographical conventions][tc] explains my notation.
+- The [grammar][gr] describes the
   syntax of a Featherweight Rust program.
-- The [type system](rust-formal/blob/master/core/typesys.md) document gives
+- The [type system][ts] document gives
   the type rules for checking whether a Rust program is legal.
 
 Still to come:
@@ -35,3 +36,7 @@ Still to come:
 - Operational semantics
 - Proofs
 - Extensions (Task system, variations, etc)
+
+[tc]: rust-formal/blog/master/core/notation.md
+[gr]: rust-formal/blob/master/core/grammar.md
+[ts]: rust-formal/blob/master/core/typesys.md
