@@ -1,7 +1,7 @@
 ## Grammar ##
 
     I = tag g<tvs> { Vs }                    (item)
-      | fn i<tvs>(Ds xs: Ts) -> T { E }
+      | fn i<Ks tvs>(Ds xs: Ts) -> T { E }
     V = i(Ts)                                (variant)
     E = x                                    (expression)
       | E.f
@@ -32,5 +32,7 @@
       | const
     S = @                                    (pointer sigil)
       | ~
-    
+    K = send
+      | copy
+      | move
 

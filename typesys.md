@@ -25,6 +25,14 @@ A type substitution `%: tv->T` maps from type variables to types.
         Env |- T_1 <: T_2
         ------------------------------------------------------------
         Env |- @ N_1 T_1 <: @ N_2 T_2
+
+## Type kinding ##
+
+    K-Move:
+        ------------------------------------------------------------
+        Env |- T : move
+
+    (omitting tedious rules)
     
 ## Typing expressions ##
 
@@ -40,8 +48,9 @@ The judgement `Env |- x : T`
         Env |- E.fs(i) : Ts(i)
 
     E-FnItem:
-        fn i<tvs>(Ds xs: Ts) -> T
+        fn i<Ks tvs>(Ds xs: Ts) -> T
         % = [tvs -> Ts]
+        Env |- Ts : Ks (forall)
         ------------------------------------------------------------
         Env |- i::<Ts> : fn(Ds %Ts) -> %T
 
