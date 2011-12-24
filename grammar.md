@@ -1,35 +1,38 @@
 ## Grammar ##
 
-    P = Is
-    I = tag g<tvs> { Vs }
-      | fn x<vns>(Ds xs: Ts) -> T { E }
-    V = x(Es)
-    E = x
-      | E.fn
-      | E::<Ts>(Es)
-      | let x = E in E
-      | { Ms fns: Es }
+    I = tag g<tvs> { Vs }                    (item)
+      | fn i<tvs>(Ds xs: Ts) -> T { E }
+    V = i(Ts)                                (variant)
+    E = x                                    (expression)
+      | E.f
+      | i::<Ts>
+      | E(Es)
+      | *E
+      | let x: T = E in E
+      | { Ms fs: Es }
       | [ M Es ]
-      | x::<Ts>(Es)
       | alt E { As }
       | { Es; E }
       | fn(Ds xs: Ts) -> T { E }
-    A = P { E }
-    P = x
-      | x::<Ts>(Ps)
-    T = S N T
+      | E = E
+    A = P { E }                              (arm)
+    P = x                                    (pattern)
+      | i(Ps)
+    T = S N T                                (type)
       | [N T]
-      | { Ns fns: Ts }
+      | { Ns fs: Ts }
       | fn(Ds Ts) -> T
-      | gn
+      | g<Ts>
       | tv
-    D = +
+      | ()
+    D = +                                    (mode)
       | -
       | &
-    M = mut
+    M = mut                                  (mutability)
       | imm
-    N = M
+    N = M                                    (mutability in types)
       | const
-    S = @
+    S = @                                    (pointer sigil)
       | ~
+    
 
