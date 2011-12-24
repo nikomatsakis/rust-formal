@@ -37,116 +37,156 @@ A type substitution `%: tv->T` maps from type variables to types.
     
 ## Typing expressions ##
 
-The judgement `Env |- x : T`
+The judgement `Env; Rs |- E : T; Rs_1` asserts that `E` is well-typed
+in the environment `Env` given that the predicates `Rs` hold.  The
+type of the expression is `T` and the set of predictes which hold
+after the expression is `Rs_1`.  
+
+To type a series of expressions `Es`, we write `Env; Rs |- Es : Ts;
+Rs_N`, which is shorthand for a series of type judgements like:
+
+    Env; Rs |- Es(1) : Ts(1); Rs_1
+    Env; Rs_1 |- Es(2) : Ts(2); Rs_2
+    ...
+    Env; Rs_2 |- Es(N) : Ts(N); Rs_N
+    
+Note that the predicates resulting from typing each expression `Es(j)`
+are used as the starting predicates for typing the next expression
+`Es(j+1)`.  `Rs_N` is the final resulting set of predicates and `Ts`
+is the list of types from each expression in `Es`.
 
     E-Var:
+        init(x) in Rs
         ------------------------------------------------------------
-        Env |- x : Env(x)
+        Env; Rs |- x : Env(x)
 
     E-Field:
-        Env |- E : { Ms fs: Ts }
+        Env; Rs |- E : { Ms fs: Ts }
         ------------------------------------------------------------
-        Env |- E.fs(i) : Ts(i)
+        Env; Rs |- E.fs(i) : Ts(i); Rs
 
     E-FnItem:
         fn i<Ks tvs>(Ds xs: Ts) -> T
         % = [tvs -> Ts]
-        Env |- Ts : Ks (forall)
+        Env; Rs |- Ts : Ks (forall)
         ------------------------------------------------------------
-        Env |- i::<Ts> : fn(Ds %Ts) -> %T
+        Env; Rs |- i::<Ts> : fn(Ds %Ts) -> %T
 
     E-TagItem:
         tag g<tvs> { Vs }
         Vs(j) = i(Ts)
         % = [tvs -> Ts]
         ------------------------------------------------------------
-        Env |- i::<Ts> : fn(Ds %Ts) -> g<Ts>
+        Env; Rs |- i::<Ts> : fn(Ds %Ts) -> g<Ts>
         
     E-Call:
-        Env |- Es_a : Ts_a
-        Env |- E : fn(Ds Ts_f) -> T_r
-        Env |- Ts_a <: Ts_f
+        Env; Rs |- E : fn(Ds Ts_f) -> T_r; Rs_f
+        Env; Rs_f |- Ds Es_a : Ts_a; Rs_a
+        forall j. Env |- Ts_a(j) <: Ts_f(j)
         ------------------------------------------------------------
-        Env |- E(Es_a) : T_r
+        Env; Rs |- E(Es_a) : T_r; Rs_a
+        
+    E-Ptr:
+        Env; Rs |- E : T; Rs_1
+        Env |- T : copy
+        ------------------------------------------------------------
+        Env; Rs |- S E : S T; Rs_1
         
     E-Deref:
-        Env |- E : S N T
+        Env; Rs |- E : S N T; Rs_1
         ------------------------------------------------------------
-        Env |- *E : T
-        
-    E-Let:
-        Env |- E_1 : T_1
-        Env |- T_1 <: T
-        Env[x->T] |- E_2 : T_2
-        ------------------------------------------------------------
-        Env |- let x: T = E_1 in E_2 : T_2
+        Env; Rs |- *E : T; Rs_1
         
     E-Rec:
-        Env |- Es : Ts
+        Env; Rs |- Es : Ts; Rs_1
         ------------------------------------------------------------
-        Env |- { Ms fs: Es } : { Ms fs: Ts }
+        Env; Rs |- { Ms fs: Es } : { Ms fs: Ts }; Rs_1
          
     E-Alt:
-        Env |- E : T_1
-        Env |- T_1 @ As : T (forall)
+        Env; Rs |- E : T_1
+        forall A in As. Env; Rs |- T_1 @ A : T; Rs
         ------------------------------------------------------------
-        Env |- alt E { As } : T
+        Env; Rs |- alt E { As } : T; Rs
 
     A:
-        Env |- T_1 @ P : Env_1
-        Env_1 |- E : T
+        Env; Rs |- T_1 @ P : Env_1
+        Env_1; Rs |- E : T; Rs_2
+        Rs_3 <= Rs_2
         ------------------------------------------------------------
-        Env |- P { E } : T
+        Env; Rs |- T_1 @ P { E } : T; Rs_3
         
     E-Lambda:
-        Env[xs->Ts] |- E : T_1
-        Env |- T_1 <: T
-        Env |- Env(FV(E)) : copy
+        Env[xs->Ts, xs_v->Ts_v]; Rs |- E : T_1; Rs_1
+        Env; Rs |- T_1 <: T
+        Env; Rs |- Env(FV(E)) : copy
         ------------------------------------------------------------
-        Env |- fn(Ds xs: Ts) -> T { E } : fn(Ds Ts) -> T
+        Env; Rs |- fn(Ds xs: Ts) -> T { let xs_v:Ts_v; E } : fn(Ds Ts) -> T; Rs
 
     E-Assign:
-        Env |- lv(E_1) : T_1
-        Env |- E_2 : T_2
-        Env |- T-1 <: T_2
-        Env |- E_3 : T_3
+        Env; Rs |- lv(E_1) : T_1; Rs_1; Rs_2
+        Env; Rs |- E_2 : T_2
+        Env; Rs |- T-1 <: T_2
+        // TODO: Filter out those affected by a write to E_1
         ------------------------------------------------------------
-        Env |- E_1 = E_2; E_3 : T_3
+        Env; Rs |- E_1 = E_2 : (); Rs_1, Rs_2
+
+## Modes ##
+
+    M-ByValue:
+        Env; Rs |- E : T; Rs_1
+        ------------------------------------------------------------
+        Env; Rs |- ++ E : T; Rs_1
+
+    M-ByImmRef:
+        Env; Rs |- E : T; Rs_1
+        ------------------------------------------------------------
+        Env; Rs |- && E : T; Rs_1
+
+    M-ByCopy:
+        Env; Rs |- E : T; Rs_1
+        ------------------------------------------------------------
+        Env; Rs |- + E : T; Rs_1
+
+    M-ByMove:
+        Env; Rs |- x : T; Rs_1
+        Rs_2 = Rs_1 \ init(x)
+        ------------------------------------------------------------
+        Env; Rs |- - x : T; Rs_2
+
+    M-ByMutRef:
+        Env; Rs |- lv(E) : T; Rs_1
+        // TODO: Filter out those affected by a write to E
+        ------------------------------------------------------------
+        Env; Rs |- & E : T; Rs_1
 
 ## Lvalues ##
 
     LV-Var:
         ------------------------------------------------------------
-        Env |- lv(x) : Env(x)
+        Env; Rs |- lv(x) : Env(x); Rs; init(x)
 
     LV-Field:
-        Env |- E : { Ns fs: Ts {
+        Env; Rs |- E : { Ns fs: Ts }; Rs_1
         Ns(j) = mut
         ------------------------------------------------------------
-        Env |- lv(E.fs(j)) : Ts(j)
-
-    LV-Field:
-        Env |- E : { Ns fs: Ts {
-        Ns(j) = mut
-        ------------------------------------------------------------
-        Env |- lv(E.fs(j)) : Ts(j)
+        Env; Rs |- lv(E.fs(j)) : Ts(j); Rs_1; ()
 
     LV-Star:
-        Env |- E : S mut T
+        Env; Rs |- E : S mut T; Rs_1
         ------------------------------------------------------------
-        Env |- lv(*E) : T
+        Env; Rs |- lv(*E) : T; Rs_1; ()
 
 ## Pattern Matching ##
 
     P-Var:
         ------------------------------------------------------------
-        Env |- T @ x : Env[x: T]
+        Env; Rs |- T @ x : Env[x: T]; Rs, init(x)
 
     P-Tag:
         tag g<tvs> { Vs }
         Vs(j) = i(Ts_v)
         % = [tvs -> Ts]
-        Env |- %Ts_v @ Ps : Env_2 (chained)
+        Env; Rs |- %Ts_v @ Ps : Env_2; Rs_2 (chained)
         ------------------------------------------------------------
-        Env |- g<Ts> @ i(Ps) : Env_2
+        Env; Rs |- g<Ts> @ i(Ps) : Env_2; Rs_2
         

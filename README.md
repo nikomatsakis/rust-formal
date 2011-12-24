@@ -32,9 +32,7 @@ The document is broken up into several parts:
 - The [grammar][gr] describes the
   syntax of a Featherweight Rust program.
 - The [type system][ts] document gives the type rules for checking
-  whether a Rust program is legal.
-- The [dataflow module][df] implements a simplified version of our
-  typestate algorithm.
+  whether a Rust program is legal. It also performs a simple dataflow.
 
 Still to come:
 
@@ -45,4 +43,3 @@ Still to come:
 [tc]: rust-formal/blog/master/core/notation.md
 [gr]: rust-formal/blob/master/core/grammar.md
 [ts]: rust-formal/blob/master/core/typesys.md
-[df]: rust-formal/blob/master/core/dataflow.md
