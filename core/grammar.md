@@ -11,9 +11,8 @@
       | let x: T = E in E
       | { Ms fs: Es }
       | alt E { As }
-      | { Es; E }
       | fn(Ds xs: Ts) -> T { E }
-      | E = E
+      | E = E; E
     A = P { E }                              (arm)
     P = x                                    (pattern)
       | i(Ps)

@@ -2,6 +2,9 @@
 
 An environment `Env` is a function `x->T` mapping variable names to types.
 
+A predicate `R = l(E*)` represents a label `l` applied to the path
+`E`.  The labels `l` used in the core of Rust are `init`, `!init`.
+
 A type substitution `%: tv->T` maps from type variables to types.
 
 ## Subtyping ##
@@ -74,7 +77,7 @@ The judgement `Env |- x : T`
     E-Let:
         Env |- E_1 : T_1
         Env |- T_1 <: T
-        Env, (x: T) |- E_2 : T_2
+        Env[x->T] |- E_2 : T_2
         ------------------------------------------------------------
         Env |- let x: T = E_1 in E_2 : T_2
         
@@ -95,24 +98,20 @@ The judgement `Env |- x : T`
         ------------------------------------------------------------
         Env |- P { E } : T
         
-    E-Block:
-        Env |- Es : Ts
-        Env |- E : T
-        ------------------------------------------------------------
-        Env |- { Es; E } : T
-
     E-Lambda:
-        Env, (xs: Ts) |- E : T_1
+        Env[xs->Ts] |- E : T_1
         Env |- T_1 <: T
+        Env |- Env(FV(E)) : copy
         ------------------------------------------------------------
         Env |- fn(Ds xs: Ts) -> T { E } : fn(Ds Ts) -> T
 
     E-Assign:
-        Env |- lv(E) : T_1
-        Env |- E : T_2
+        Env |- lv(E_1) : T_1
+        Env |- E_2 : T_2
         Env |- T-1 <: T_2
+        Env |- E_3 : T_3
         ------------------------------------------------------------
-        Env |- E = E : ()
+        Env |- E_1 = E_2; E_3 : T_3
 
 ## Lvalues ##
 
