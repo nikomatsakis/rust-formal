@@ -14,13 +14,14 @@ complexity.  For now I am focusing on the core.  Included in the model are:
 - Tags
 - Pattern matching against tags
 - Lambdas
+- Uninitialized variables
 
 Excluded from the core are:
 
 - Tasks (Rust's strict memory separation makes these easily layerable)
 - Objects (can be modeled with records of fn ptrs)
-- Resources (eh)
-- Uninitialized variables and ret statements (eh)
+- Resources (meh)
+- Ret statements (meh)
 - While loops (use functions)
 - Tuples (modeled by records)
 - Blocks and unique closures (modeled by lambdas and mutable boxes)
