@@ -35,13 +35,6 @@ where `A: {x -> a}` is an *activation record*, which maps from the
 local variable names in the stack frame to the addresses where their
 values are stored.
 
-Let `a(H,A,lv)` be a function that computes the address where a given
-lvalue is stored:
-
-    a(H,A,x) = A(x)
-    a(H,A,lv.f) = a(H,S,lv) + offset(f)
-    a(H,A,*x) = H(A(x))
-
 A machine configuration `C` is then defined as:
 
     C = H; S
@@ -51,7 +44,25 @@ unique names, and define a helper function `type(x)` that returns the
 type declared for a given variable and `type(f)` that returns the type
 declared for a given field.  The rules are always defined relative to
 a given fixed program text.
-    
+
+Let `sizeof(ty)` be a function defined as follows:
+
+    sizeof(()) = 1
+    sizeof(~ty) = 1
+    sizeof(&_r ty) = 1
+    sizeof("{" {f:ty} "}") = sum(sizeof({ty}))
+
+
+Let `offsetof(f)` be the sum of the sizes of all fields prior to the
+given field.
+
+Let `a(H,A,lv)` be a function that computes the address where a given
+lvalue is stored:
+
+    a(H,A,x) = A(x)
+    a(H,A,lv.f) = a(H,S,lv) + offsetof(f)
+    a(H,A,*x) = H(A(x))
+
 The small step semantics are defined by a relation `C -> C'`.
 
     Rule Var:
@@ -62,7 +73,7 @@ The small step semantics are defined by a relation `C -> C'`.
     Rule Field:
     H; S, (a, A, (lv = x.f, {st})) -> H'; S, (a, A, {st}) where
         Z = sizeof(type(f))
-        H' = H[a(H,S,lv) ->_Z H(A(x) + offset(f))]
+        H' = H[a(H,S,lv) ->_Z H(A(x) + offsetof(f))]
 
     Rule Deref:
     H; S, (a, A, (lv = *x, {st})) -> H'; S, (a, A, {st}) where
@@ -101,8 +112,4 @@ The small step semantics are defined by a relation `C -> C'`.
         H' = H[{a_f} <- H(A({x_a})), {a_l} <- 0]
         A' = [{x_f -> a_f}, {x_l -> a_l}]
         {st'} = stmts(id)
-               
-
-        
-
                
