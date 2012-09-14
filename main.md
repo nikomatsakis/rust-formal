@@ -3,17 +3,19 @@
     rv = x
        | x.f
        | *x
-       | &_r m lv
-       | ~x
+       | &_r mq lv
+       | ~ mq x
        | ()
     lv = x
        | lv.f
        | *x
-    st = lv = rv 
+    ex = copy rv
+       | move lv
+    st = lv = ex 
        | lv <-> lv
+       | g(exs)
        | r: "{" {st} "}"
-       | id(xs)
-    fn = "fn" id(xs:tys) "{"
+    fn = "fn" g(xs:tys) "{"
              let ms xs:tys;
              sts
          "}"
@@ -142,67 +144,84 @@ constituent functions type check according to the following judgement:
     Ty-Fn:
       |- tys_f WF
       |- tys_l WF
-      Env = xs_f:tys_f, xs_l:tys_l
-      Env; [] |- sts
+      \env = xs_f:tys_f, xs_l:tys_l
+      \env; [] |- sts
       ------------------------------------------------------------
       |- "fn" id(xs_f:tys_f) "{" let mut xs_l:tys_l; sts "}"
      
 ### Type-checking statement lists
 
-A given statement type checks according to the judgement `Env; lns |- sts`.
+A given statement type checks according to the judgement `\env; lns |- sts`.
 
     Ty-Stmts:
       ------------------------------------------------------------
-      Env; lns |- [] 
+      \env; lns |- [] 
 
     Ty-Stmts:
-      Env; lns |- st -> lns_st
-      Env; lns_st |- sts
+      \env; lns |- st -> \env'; lns'
+      \env'; lns' |- sts
       ------------------------------------------------------------
-      Env; lns |- st, sts
+      \env; lns |- st, sts
 
 ### Type-checking individual statements
 
-A given statement type checks according to the judgement `Env; lns |- sts -> lns`.
+A given statement type checks according to the judgement
+`\env; lns |- sts -> \env'; lns'`.
 
-    Ty-Stmt:
-      Env |- Assignable(lv)
-      Env |- lv : ty_lv
-      Env |- rv : ty_rv
-      ty_lv <: ty_rv
-      Env; lns |- rv -> lns
+    Ty-Stmt-Assign:
+      \env |- lv : ty
+      \env |- rv : ty'
+      ty <: ty'
+      \env; lns |- rv -> lns'
+      \env; lns' |- Assignable(lv)
       ------------------------------------------------------------
-      Env; lns |- lv = rv -> lns
+      \env; lns |- lv = rv -> \env; lns'
+
+    Ty-Stmt-Swap:
+      \env |- lv : ty
+      \env |- lv' : ty
+      \env; lns |- Assignable(lv)
+      \env; lns |- Assignable(lv')
+      ------------------------------------------------------------
+      \env; lns |- lv <-> lv' -> \env; lns
+
+    Ty-Stmt-Call:
+      formals(g) = rs_f tys_f
+      \Theta = [rs_f -> rs_a]
+      \forall i. rs_a(i) in \env
+      \forall i. \env(xs(i)) <: \Theta(tys_f(i))
+      ------------------------------------------------------------
+      \env; lns |- g(xs) -> lns
 
 ### Type-checking rvalues
 
     Ty-Rv-Var:
       ------------------------------------------------------------
-      Env; lns |- x -> lns
+      \env; lns |- x -> lns
 
     Ty-Rv-Field:
       ------------------------------------------------------------
-      Env; lns |- x.f -> lns
+      \env; lns |- x.f -> lns
 
     Ty-Rv-Deref:
       ------------------------------------------------------------
-      Env; lns |- *x -> lns
+      \env; lns |- *x -> lns
 
     Ty-Rv-Uniq:
       ------------------------------------------------------------
-      Env; lns |- ~x -> lns
+      \env; lns |- ~x -> lns
 
     Ty-Rv-Null:
       ------------------------------------------------------------
-      Env; lns |- () -> lns
+      \env; lns |- () -> lns
 
     Ty-Rv-AddrOf:
-      r in Regions(Env)
-      Env |- Mutability(lv) = m_lv
-      Env |- Guarantee(lv, m, r) = lns_lv
+      r in Regions(\env)
+      \env |- Mutability(lv) = m_lv
+      \env |- Guarantee(lv, m, r) = lns_lv
       \forall i, j. Compatible(lns(i), lns_lv(j))
       ------------------------------------------------------------
-      Env; lns |- &_r m lv -> lns, lns_lv
+      \env; lns |- &_r m lv -> lns, lns_lv
 
 ## Type subtyping
 
@@ -263,72 +282,72 @@ loaned out as mutable and as immutable simultaneously.
 
 ### Guarantee
 
-The judgement `Env |- Guarantee(lv, m, r) = lns` means that a pointer
+The judgement `\env |- Guarantee(lv, m, r) = lns` means that a pointer
 to `lv` with mutability `m` is guaranteed to be valid if the (possibly
 empty) set of lns `lns` is honored.  This brings together the various
 checks.
 
     G-Loan-Mut:
-      Env |- Loan(lv, mut, r) = lns
-      Env |- Mutability(lv) = mut
+      \env |- Loan(lv, mut, r) = lns
+      \env |- Mutability(lv) = mut
       ------------------------------------------------------------
-      Env |- Guarantee(lv, mut, r) = lns
+      \env |- Guarantee(lv, mut, r) = lns
 
     G-Loan-Nonmut:
-      Env |- Loan(lv, m, r) = lns
+      \env |- Loan(lv, m, r) = lns
       m != mut
       ------------------------------------------------------------
-      Env |- Guarantee(lv, m, r) = lns
+      \env |- Guarantee(lv, m, r) = lns
 
     G-Stable-Mut:
-      Env |- Stable(lv)
-      Env |- Mutability(lv) = mut
+      \env |- Stable(lv)
+      \env |- Mutability(lv) = mut
       ------------------------------------------------------------
-      Env |- Guarantee(lv, mut, r) = []
+      \env |- Guarantee(lv, mut, r) = []
 
     G-Stable-Imm:
-      Env |- Stable(lv)
-      Env |- Mutability(lv) = imm
+      \env |- Stable(lv)
+      \env |- Mutability(lv) = imm
       ------------------------------------------------------------
-      Env |- Guarantee(lv, imm, r) = []
+      \env |- Guarantee(lv, imm, r) = []
 
     G-Stable-Const:
-      Env |- Stable(lv)
+      \env |- Stable(lv)
       ------------------------------------------------------------
-      Env |- Guarantee(lv, const, r) = []
+      \env |- Guarantee(lv, const, r) = []
 
 ### Mutability
 
 Rules for computing the mutability of an lvalue.  The judgement is
-`Env |- Mutability(lv) = m`:
+`\env |- Mutability(lv) = m`:
 
     M-Local:
-      Env(x) = m ty
+      \env(x) = m ty
       ------------------------------------------------------------
-      Env |- Mutability(x) = m
+      \env |- Mutability(x) = m
 
     M-Field-Imm:
-      Env |- Mutability(lv) = m
-      Env |- lv : "{" ms fs:tys "}"
+      \env |- Mutability(lv) = m
+      \env |- lv : "{" ms fs:tys "}"
       ms(i) = imm
       ------------------------------------------------------------
-      Env |- Mutability(lv.fs(i)) = m
+      \env |- Mutability(lv.fs(i)) = m
 
     M-Field-Mut:
-      Env |- lv : "{" ms fs:tys "}"
+      \env |- lv : "{" ms fs:tys "}"
       ms(i) = mut
       ------------------------------------------------------------
       Mutability(lv.fs(i)) = mut
 
     M-Deref-Uniq:
-      Env |- lv : ~ m ty
+      \env |- lv : ~ m ty
       ------------------------------------------------------------
-      Env |- Mutability(*lv) = m
+      \env |- Mutability(*lv) = m
 
     M-Deref-Region:
-      Env |- lv : &_r m ty
+      \env |- lv : &_r m ty
       ------------------------------------------------------------
-      Env |- Mutability(*lv) = m
+      \env |- Mutability(*lv) = m
 
 ### Loan
 
@@ -339,8 +358,8 @@ Let a loan `ln` be defined as:
 This means that the lvalue `lv` is loaned out with the mutability `m`
 for the region `r`.
 
-Then we define a judgement `Env |- Loan(lv, m, r) = lns` which means
-that, in the environment `Env`, we can safely create a reference to
+Then we define a judgement `\env |- Loan(lv, m, r) = lns` which means
+that, in the environment `\env`, we can safely create a reference to
 the lvalue `lv` with the mutability `m` with duration `r` assuming
 that the loans `lns` can be honored.
 
@@ -354,32 +373,32 @@ data is never aliased with a mutable pointer.
 
     L-Var:
       ------------------------------------------------------------
-      Env |- Loan(x, m, r) = (x, m, r)
+      \env |- Loan(x, m, r) = (x, m, r)
 
 #### Loaning fields
 
     L-Field-MutConst:
       m != imm
-      Env |- Loan(lv, const, r) = lns
+      \env |- Loan(lv, const, r) = lns
       ------------------------------------------------------------
-      Env |- Loan(lv.f, m, r) = lns, (lv.f, m, r)
+      \env |- Loan(lv.f, m, r) = lns, (lv.f, m, r)
 
     L-Field-Imm:
-      Env |- Loan(lv, imm, r) = lns
+      \env |- Loan(lv, imm, r) = lns
       ------------------------------------------------------------
-      Env |- Loan(lv.f, imm, r) = lns, (lv.f, imm, r)
+      \env |- Loan(lv.f, imm, r) = lns, (lv.f, imm, r)
 
 #### Loaning derefences of unique pointers
 
     L-Deref-Mut:
-      Env |- Loan(lv, imm, r) = lns
-      Env |- lv : ~ m_lv ty_lv
+      \env |- Loan(lv, imm, r) = lns
+      \env |- lv : ~ m_lv ty_lv
       ------------------------------------------------------------
-      Env |- Loan(*lv, m, r) = lns, (lv.f, m, r)
+      \env |- Loan(*lv, m, r) = lns, (lv.f, m, r)
 
 ### Stable
 
-The judgement `Env |- Stable(lv)` indicates that the lvalue `lv` is
+The judgement `\env |- Stable(lv)` indicates that the lvalue `lv` is
 stable without the need for any loans. Unlike the loan check, the
 stability check only works on aliasable data.  Also, the resulting
 pointer must be compatible with the mutability of the data being
@@ -387,43 +406,43 @@ pointed at, though this is not enforced here in these rules but rather
 elsewhere.
 
     S-Field:
-      Env |- Stable(lv)
+      \env |- Stable(lv)
       ------------------------------------------------------------
-      Env |- Stable(lv.f)
+      \env |- Stable(lv.f)
 
     S-Deref-Mut:
-      Env |- lv : &_r m_lv ty_lv
+      \env |- lv : &_r m_lv ty_lv
       ------------------------------------------------------------
-      Env |- Stable(*lv)
+      \env |- Stable(*lv)
 
     S-Deref-Uniq:
-      Env |- lv : ~ imm ty_lv
-      Env |- Stable(lv)
-      Env |- Mutability(lv) = imm
+      \env |- lv : ~ imm ty_lv
+      \env |- Stable(lv)
+      \env |- Mutability(lv) = imm
       ------------------------------------------------------------
-      Env |- Stable(*lv)
+      \env |- Stable(*lv)
 
 ## Wellformedness checks
 
     WF-Ty-Unit:
       ------------------------------------------------------------
-      Env |- () WF
+      \env |- () WF
 
     WF-Ty-Rptr:
-      Env |- ty WF
-      r in Regions(Env)
+      \env |- ty WF
+      r in Regions(\env)
       ------------------------------------------------------------
-      Env |- &_r m ty WF
+      \env |- &_r m ty WF
 
     WF-Ty-Uptr:
-      Env |- ty WF
+      \env |- ty WF
       ------------------------------------------------------------
-      Env |- ~ m ty WF
+      \env |- ~ m ty WF
 
     WF-Ty-Uptr:
-      \forall i. Env |- tys(i) WF
+      \forall i. \env |- tys(i) WF
       ------------------------------------------------------------
-      Env |- { ms fs:tys } WF
+      \env |- { ms fs:tys } WF
 
 
     
